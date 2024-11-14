@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Allocation Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #f5f5f5;
+            font-family: 'Arial', sans-serif;
+        }
+        #max-profit {
+            font-size: 20px;
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        #dashboard-container {
+            display: flex;
+            justify-content: space-around; 
+            align-items: flex-start;
+            flex-direction: row;
+            max-width: 1200px; 
+            margin: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow-x: hidden; 
+        }
+        .chart-container {
+            width: 400px;
+            height: 350px; 
+            margin: 10px;
+        }
+        .chart-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        #input-container {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div id="input-container">
+    <label for="capital">Enter Capital: </label>
+    <input type="number" id="capital" placeholder="Enter capital amount">
+    <button onclick="submitCapital()">Submit</button>
+</div>
+
+
+<div id="max-profit" style="display: none;">
+    Maximum Profit: ₹<span id="profit-amount"></span>
+</div>
+
+<div id="dashboard-container" style="display: none;">
+    <div class="chart-container">
+        <div class="chart-title">Stock Profit Distribution (Bar Chart)</div>
+        <canvas id="stockBarChart"></canvas>
+    </div>
+    <div class="chart-container">
+        <div class="chart-title">Stock Allocation Quantities (Pie Chart)</div>
+        <canvas id="stockPieChart"></canvas>
+    </div>
+    <div class="chart-container">
+        <div class="chart-title">Stock Performance Over Time (Line Chart)</div>
+        <canvas id="stockLineChart"></canvas>
+    </div>
+</div>
+
+<script>
+
+function submitCapital() {
+    const capital = document.getElementById('capital').value;
+    if (!capital || capital <= 0) {
+        alert('Please enter a valid capital amount.');
+        return;
+    }
+
+    
+    fetch(`/get-stock-data?capital=${capital}`)
+        .then(response => response.json())
+        .then(data => {
+          
+            document.getElementById('input-container').style.display = 'none';
+
+            
+            document.getElementById('max-profit').style.display = 'block';
+            document.getElementById('profit-amount').innerText = data.MaximumProfit.toFixed(2); 
+
+           
+            displayCharts(data);
+        })
+        .catch(error => {
+            console.error('Error fetching stock data:', error);
+        });
+}
+
+
+function displayCharts(stockData) {
+    document.getElementById('dashboard-container').style.display = 'flex'; 
+
+    const stockNames = stockData.StocksToBuy.map(stock => stock.name);
+    const stockProfits = stockData.StocksToBuy.map(stock => stock.profit * stock.quantity);
+    const stockQuantities = stockData.StocksToBuy.map(stock => stock.quantity);
+
+   
+    const performanceDates = ['January', 'February', 'March', 'April', 'May'];  
+    const performanceProfits = [5000, 7000, 12000, 15000, 20000];  
+
+   
+    var ctxBar = document.getElementById('stockBarChart').getContext('2d');
+    new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+            labels: stockNames,
+            datasets: [{
+                label: 'Profit (₹)',
+                data: stockProfits,
+                backgroundColor: ['#4caf50', '#ff5722', '#2196f3'],
+                borderColor: ['#388e3c', '#e64a19', '#1976d2'],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    
+    var ctxPie = document.getElementById('stockPieChart').getContext('2d');
+    new Chart(ctxPie, {
+        type: 'pie',
+        data: {
+            labels: stockNames,
+            datasets: [{
+                data: stockQuantities,
+                backgroundColor: ['#4caf50', '#ff5722', '#2196f3'],
+            }]
+        }
+    });
+
+    var ctxLine = document.getElementById('stockLineChart').getContext('2d');
+    new Chart(ctxLine, {
+        type: 'line',
+        data: {
+            labels: performanceDates,
+            datasets: [{
+                label: 'Monthly Profit (₹)',
+                data: performanceProfits,
+                borderColor: '#ff9800',
+                backgroundColor: 'rgba(255, 152, 0, 0.2)',
+                fill: true,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Month'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Profit (₹)'
+                    }
+                }
+            }
+        }
+    });
+}
+</script>
+
+</body>
+</html>
